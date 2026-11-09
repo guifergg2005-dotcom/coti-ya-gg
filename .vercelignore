@@ -1,0 +1,7 @@
+node_modules
+dist_installer
+dist_electron
+tests
+memory
+build
+.git

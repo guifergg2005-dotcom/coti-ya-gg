@@ -1,0 +1,25 @@
+ACUERDO DE LICENCIA DE USUARIO FINAL (EULA) - SERYVER G&G S.A.C.
+
+LEA ATENTAMENTE ESTOS TÉRMINOS ANTES DE INSTALAR EL SOFTWARE.
+
+1. ACEPTACIÓN DE LOS TÉRMINOS
+Al instalar y utilizar "Coti Ya GG" (en adelante, "el Software"), usted acepta estar legalmente vinculado por los términos de este acuerdo. Si no está de acuerdo, cancele la instalación.
+
+2. LICENCIA DE USO
+SERYVER G&G S.A.C. le concede una licencia revocable, no exclusiva y no transferible para utilizar este Software con fines exclusivos de gestión de ventas, inventario y logística interna de la empresa.
+
+3. PRIVACIDAD Y DATOS (FIREBASE CLOUD)
+El Software almacena y sincroniza información confidencial (clientes, cotizaciones, inventario y cuentas bancarias) en servidores seguros en la nube. Usted es responsable de salvaguardar las credenciales de acceso de nivel Administrador.
+
+4. RESTRICCIONES
+Usted no podrá:
+a) Modificar, descompilar, realizar ingeniería inversa o extraer el código fuente del Software.
+b) Distribuir copias del Software a terceros ajenos a la operativa de SERYVER G&G S.A.C.
+
+5. RESPONSABILIDAD TÉCNICA
+Este software incluye motores de cálculo financiero e inventario. El Usuario es responsable final de revisar las cotizaciones emitidas antes de ser entregadas a los clientes. SERYVER G&G S.A.C. y sus desarrolladores no se hacen responsables por pérdidas financieras derivadas de errores humanos en el ingreso de datos.
+
+6. PROPIEDAD INTELECTUAL
+El Software, su código fuente, diseño de interfaz y la marca Coti Ya son propiedad intelectual. Todos los derechos reservados.
+
+Al hacer clic en "Acepto", usted confirma que ha leído y comprendido estas condiciones legales.

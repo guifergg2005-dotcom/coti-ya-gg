@@ -1,0 +1,75 @@
+{
+  "name": "coti-ya-gg",
+  "private": true,
+  "version": "2.1.1",
+  "description": "Sistema Coti YA G&G",
+  "author": "SERYVER G&G",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "electron:build": "vite build && electron-builder -w",
+    "build:desktop": "npm run check && vite build && electron-builder --win",
+    "test": "node --test tests/*.test.cjs",
+    "lint": "eslint --config eslint.config.mjs src electron shared",
+    "postinstall": "node scripts/harden-build-deps.cjs",
+    "check": "npm run lint && npm test"
+  },
+  "build": {
+    "appId": "com.seryver.gg",
+    "productName": "Coti Ya GG",
+    "directories": {
+      "output": "dist_installer"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "public/favicon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "license": "build/license_es.txt",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Coti Ya - Seryver GG",
+      "differentialPackage": false
+    },
+    "files": [
+      "dist/**/*",
+      "public/favicon.ico",
+      "package.json",
+      "!node_modules{,/**/*}",
+      "electron/main.js",
+      "electron/preload.cjs",
+      "electron/printing.cjs",
+      "electron/quoteDocument.mjs",
+      "shared/quoteMath.mjs"
+    ],
+    "asar": true
+  },
+  "dependencies": {
+    "firebase": "12.19.0",
+    "lucide-react": "0.263.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.63.0",
+    "@types/react": "18.3.27",
+    "@types/react-dom": "18.3.7",
+    "@vitejs/plugin-react": "6.1.1",
+    "autoprefixer": "10.6.1",
+    "electron": "44.5.1",
+    "electron-builder": "26.15.3",
+    "esbuild": "0.28.2",
+    "eslint": "10.12.0",
+    "globals": "17.13.0",
+    "postcss": "8.5.28",
+    "tailwindcss": "3.4.19",
+    "vite": "8.3.1"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "1.13.6"
+  }
+}

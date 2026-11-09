@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- Scrollbar personalizada --- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* --- Animaciones --- */
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+  .animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Reglas de Impresión Profesional --- */
+@media print {
+  /* Evitar cortes dentro de secciones y tablas */
+  .avoid-break,
+  .break-inside-avoid { 
+    page-break-inside: avoid; 
+    break-inside: avoid; 
+  }
+  
+  tr, img, h2, h3 { 
+    page-break-inside: avoid; 
+    break-inside: avoid; 
+  }
+
+  /* Repetir headers de tabla en cada página */
+  thead { 
+    display: table-header-group; 
+  }
+
+  /* Las tablas pueden dividirse entre páginas */
+  table { 
+    page-break-inside: auto; 
+  }
+
+  /* Márgenes profesionales para impresión */
+  @page {
+    margin-top: 15mm;
+    margin-bottom: 20mm;
+    margin-left: 15mm;
+    margin-right: 15mm;
+  }
+
+  /* Garantizar colores exactos en impresión */
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Garantizar legibilidad en B/N */
+  .print\:text-black { 
+    color: #000 !important; 
+  }
+
+  /* Ocultar spinners de inputs numéricos */
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+  }
+
+  /* Footer fijo en impresión */
+  .print-fixed-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: white;
+    padding-top: 5mm;
+    z-index: 100;
+  }
+}
