@@ -53,7 +53,7 @@ const RIGHT_BRAND_SVG = `<svg class="brand-right-svg" viewBox="0 0 220 76" xmlns
 </svg>`;
 
 const DEFAULT_WATERMARK_SVG = `<svg class="watermark-svg" viewBox="0 0 500 320" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <g opacity="0.13">
+  <g>
     <path d="M170 20 H305 L345 55 H170 Z" fill="#d97706"/>
     <path d="M170 68 H290 L335 105 H215 L170 68 Z" fill="#d97706"/>
     <path d="M170 78 L215 112 V145 H170 Z" fill="#d97706"/>
@@ -73,6 +73,7 @@ export function renderQuoteDocument({ quote, pdfConfig = {} }) {
   const paper = PAPER_SIZES[pdfConfig.pageSize] || PAPER_SIZES.A4;
   const rawColor = /^#[0-9a-f]{6}$/i.test(pdfConfig.color || '') ? pdfConfig.color : '#d99b26';
   const headerBg = rawColor.toLowerCase() === '#1e3a8a' ? '#e5bd68' : rawColor;
+  const headingColor = rawColor.toLowerCase() === '#d99b26' || rawColor.toLowerCase() === '#e5bd68' ? '#1e3a8a' : rawColor;
   const sections = quote.sections.filter(s => s.visible);
   const totals = calculateQuoteTotals(quote);
   const taxLabel = Math.abs(totals.igv - Math.round(totals.baseImponible * 18) / 100) <= 0.011 ? 'IGV (18%)' : 'IGV registrado';
@@ -82,7 +83,18 @@ export function renderQuoteDocument({ quote, pdfConfig = {} }) {
   const ruc = pdfConfig.companyRuc || '20614510421';
   // eslint-disable-next-line no-control-regex
   const title = ('Cotizacion_' + (quote.numero || 'S-N') + '_' + (quote.cliente.nombre || 'Cliente')).replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').slice(0, 150);
-  const logo = image(pdfConfig.logo), signature = image(pdfConfig.signature), watermark = image(pdfConfig.watermark);
+
+  const logo = image(pdfConfig.logo);
+  const logoRight = image(pdfConfig.logoRight);
+  const signature = image(pdfConfig.signature);
+  const watermark = image(pdfConfig.watermark);
+
+  const leftScale = Math.min(180, Math.max(40, Number(pdfConfig.logoSize) || 100)) / 100;
+  const rightScale = Math.min(180, Math.max(40, Number(pdfConfig.logoRightSize) || 100)) / 100;
+  const hideLeftLogo = Boolean(pdfConfig.hideLeftLogo);
+  const hideRightLogo = Boolean(pdfConfig.hideRightLogo);
+  const hideWatermark = Boolean(pdfConfig.hideWatermark);
+
   const markSize = Math.min(100, Math.max(10, Number(pdfConfig.watermarkSize) || 55));
   const markOpacity = Math.min(1, Math.max(0, Number(pdfConfig.watermarkOpacity ?? 0.12)));
 
@@ -112,15 +124,13 @@ export function renderQuoteDocument({ quote, pdfConfig = {} }) {
     { banco: 'BCP SOLES GUIDO G.', moneda: 'Soles', numero: '535-01912154-0-87', cci: '002-535-101912154087-35' },
     { banco: 'BCP SOLES SERYVER', moneda: 'Soles', numero: '535-09572834-0-48', cci: '002-535-109572834048-39' }
   ] : rawAccounts;
-  const rawObs = String(quote.observaciones || '').trim();
-  const currencyWord = currency === 'USD' || currency === '$' ? 'DÓLARES AMERICANOS' : 'SOLES';
 
   const css = `
 @page {
   size: ${paper.css};
-  margin: 12mm 14mm 15mm;
-  @bottom-left { content: "SERYVER G&G S.A.C · ${String(quote.numero || '').replace(/[^a-zA-Z0-9 -]/g, '').slice(0, 50)}"; font: 7.5pt Arial; color: #64748b; }
-  @bottom-right { content: "Página " counter(page) " de " counter(pages); font: 7.5pt Arial; color: #64748b; }
+  margin: 12mm 14mm 16mm;
+  @bottom-left { content: "Coti Ya · ${String(quote.numero || '').replace(/[^a-zA-Z0-9 -]/g, '').slice(0, 50)}"; font: 8pt Arial; color: #64748b; }
+  @bottom-right { content: "Página " counter(page) " de " counter(pages); font: 8pt Arial; color: #64748b; }
 }
 * { box-sizing: border-box; }
 html { background: #cbd5e1; }
@@ -131,9 +141,12 @@ body {
   min-height: ${paper.height}mm;
   background: white;
   color: #111827;
-  font: 9.5pt/1.38 Calibri, Arial, Helvetica, sans-serif;
+  font: 9.5pt/1.4 Calibri, Arial, Helvetica, sans-serif;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
+main { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; }
 header.doc-header {
   display: flex;
   justify-content: space-between;
@@ -143,12 +156,13 @@ header.doc-header {
   break-inside: avoid;
 }
 .header-left { flex: 1; min-width: 0; }
-.logo { max-width: 68mm; max-height: 22mm; object-fit: contain; display: block; }
-.brand-left-svg { width: 68mm; height: 19mm; display: block; }
+.logo { width: ${Math.round(68 * leftScale)}mm; max-height: ${Math.round(24 * leftScale)}mm; object-fit: contain; display: block; }
+.brand-left-svg { width: ${Math.round(68 * leftScale)}mm; height: ${Math.round(19 * leftScale)}mm; display: block; }
 .company-fallback { font-size: 13pt; font-weight: 800; color: #1f2937; margin: 1mm 0 0; }
 .subtitle-fallback { font-size: 7.5pt; color: #64748b; margin: 0; }
-.header-right { text-align: right; min-width: 55mm; }
-.brand-right-svg { width: 52mm; height: 18mm; display: inline-block; }
+.header-right { text-align: right; min-width: 55mm; display: flex; flex-direction: column; align-items: flex-end; }
+.logo-right { width: ${Math.round(52 * rightScale)}mm; max-height: ${Math.round(22 * rightScale)}mm; object-fit: contain; display: block; }
+.brand-right-svg { width: ${Math.round(52 * rightScale)}mm; height: ${Math.round(18 * rightScale)}mm; display: block; }
 .ruc-line { font-size: 10.5pt; font-weight: 700; color: #111827; margin-top: 1mm; text-align: right; }
 .quote-Banner { text-align: center; margin: 1mm 0 1mm; }
 .quote-Banner h1 { font-size: 13pt; font-weight: 700; letter-spacing: 0.4pt; margin: 0; color: #111827; text-transform: uppercase; }
@@ -216,7 +230,7 @@ ${pdfConfig.tableStyle === 'zebra' ? '.items-table tbody tr:nth-child(even) { ba
   justify-content: space-between;
   align-items: flex-end;
   gap: 6mm;
-  margin: 0 0 5mm;
+  margin: 0 0 4mm;
   break-inside: avoid;
 }
 .signature-box { min-width: 50mm; text-align: center; }
@@ -246,37 +260,65 @@ ${pdfConfig.tableStyle === 'zebra' ? '.items-table tbody tr:nth-child(even) { ba
   width: 45%;
   white-space: nowrap;
 }
-.cond-table, .banks-table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1pt solid #000000;
-  margin-bottom: 4mm;
+.footer-columns {
+  display: grid;
+  grid-template-columns: ${accounts.length ? '1.15fr 1fr' : '1fr'};
+  gap: 8mm;
+  border-top: 1pt solid #cbd5e1;
+  padding-top: 3.5mm;
+  margin-top: 2mm;
   break-inside: avoid;
 }
-.cond-table th, .banks-table th {
-  background: ${headerBg};
-  color: #000000;
-  border: 1pt solid #000000;
-  padding: 1.4mm 2.5mm;
-  font-size: 9.2pt;
+.terms h2, .banks h2 {
+  font-size: 9.5pt;
   font-weight: 800;
   text-transform: uppercase;
+  letter-spacing: 0.4pt;
+  color: ${headingColor};
+  margin: 0 0 2mm;
+  padding-bottom: 1mm;
+  border-bottom: 0.7pt solid #e2e8f0;
+  break-after: avoid;
 }
-.cond-table th { text-align: left; }
-.banks-table th { text-align: center; }
-.cond-table td, .banks-table td {
-  border: 1pt solid #000000;
-  padding: 1.6mm 2.5mm;
-  font-size: 9pt;
-  vertical-align: top;
+.terms p {
+  margin: 0 0 1.5mm;
+  font-size: 8.8pt;
+  color: #334155;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
 }
-.cond-labels { width: 34%; font-weight: 600; line-height: 1.55; }
-.cond-values { width: 66%; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
-.bank-left { width: 30%; font-weight: 800; text-transform: uppercase; }
-.bank-left .cci-lbl { font-weight: 500; margin-top: 0.6mm; }
-.bank-right { width: 70%; font-family: Calibri, Arial, sans-serif; }
-.bank-right .cci-val { margin-top: 0.6mm; }
-.watermark {
+.banks-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(42mm, 1fr));
+  gap: 2.5mm 4mm;
+}
+.bank {
+  padding: 0.5mm 0;
+  break-inside: avoid;
+}
+.bank p {
+  margin: 0;
+  font-size: 8.8pt;
+  color: #334155;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.bank p strong { color: #0f172a; }
+.brand {
+  margin-top: auto;
+  padding-top: 3mm;
+  border-top: 0.6pt solid #cbd5e1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4mm;
+  font-size: 8pt;
+  color: #64748b;
+  break-inside: avoid;
+}
+.brand strong { color: #334155; }
+.watermark, .watermark-svg {
   position: fixed;
   top: 26%;
   left: ${(100 - markSize) / 2}%;
@@ -287,40 +329,57 @@ ${pdfConfig.tableStyle === 'zebra' ? '.items-table tbody tr:nth-child(even) { ba
   z-index: 0;
   pointer-events: none;
 }
-.watermark-svg {
-  position: fixed;
-  top: 25%;
-  left: 15%;
-  width: 70%;
-  height: auto;
-  z-index: 0;
-  pointer-events: none;
-}
-main { position: relative; z-index: 1; }
 @media print {
   html, body { width: auto; min-height: 0; background: white; margin: 0; padding: 0; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 `;
 
-  const condBodyHtml = rawObs
-    ? '<div class="cond-values">' + e(rawObs) + '</div>'
-    : `<div class="cond-values"><div>${e(currencyWord)}</div><div>50% al inicio del contrato y el 50% al finalizar el proyecto</div><div>2 días</div><div>30 días calendario · Instalaciones del cliente</div><div>12 meses</div></div>`;
+  const leftBrandHtml = hideLeftLogo
+    ? ''
+    : (logo ? '<img class="logo" alt="Logo" src="' + logo + '">' : LEFT_BRAND_SVG);
+
+  const rightBrandHtml = hideRightLogo
+    ? ''
+    : (logoRight ? '<img class="logo-right" alt="Logo derecho" src="' + logoRight + '">' : RIGHT_BRAND_SVG);
+
+  const watermarkHtml = hideWatermark
+    ? ''
+    : (watermark ? '<img class="watermark" alt="" src="' + watermark + '">' : DEFAULT_WATERMARK_SVG);
+
+  const termsHtml = '<section class="terms"><h2>Condiciones comerciales</h2>' +
+    String(quote.observaciones || 'Sin condiciones especificadas.')
+      .split(/\n\s*\n/)
+      .map(t => '<p>' + e(t) + '</p>')
+      .join('') +
+    '</section>';
+
+  const banksHtml = accounts.length
+    ? '<section class="banks"><h2>Cuentas bancarias</h2><div class="banks-list">' +
+      accounts.map(a =>
+        '<div class="bank">' +
+          '<p><strong>' + e(a.banco) + (a.moneda ? ' (' + e(a.moneda) + ')' : '') + '</strong></p>' +
+          '<p>N.º ' + e(a.numero) + '</p>' +
+          (a.cci ? '<p>CCI: ' + e(a.cci) + '</p>' : '') +
+        '</div>'
+      ).join('') +
+      '</div></section>'
+    : '';
 
   const html =
     '<!doctype html><html lang="es"><head><meta charset="utf-8">' +
     '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:; object-src \'none\'; base-uri \'none\'; form-action \'none\'">' +
     '<title>' + e(title) + '</title><style>' + css + '</style></head><body>' +
-    (watermark ? '<img class="watermark" alt="" src="' + watermark + '">' : DEFAULT_WATERMARK_SVG) +
+    watermarkHtml +
     '<main>' +
       '<header class="doc-header">' +
         '<div class="header-left">' +
-          (logo ? '<img class="logo" alt="Logo" src="' + logo + '">' : LEFT_BRAND_SVG) +
+          leftBrandHtml +
           (company && company !== 'SERYVER G&G S.A.C' && company !== 'SERYVER G&G S.A.C.' ? '<p class="company-fallback">' + e(company) + '</p>' : '') +
-          (pdfConfig.companySubtitle && ! pdfConfig.companySubtitle.includes('PUERTAS AUTOMÁTICAS') ? '<p class="subtitle-fallback">' + e(pdfConfig.companySubtitle) + '</p>' : '') +
+          (pdfConfig.companySubtitle && !pdfConfig.companySubtitle.includes('PUERTAS AUTOMÁTICAS') ? '<p class="subtitle-fallback">' + e(pdfConfig.companySubtitle) + '</p>' : '') +
         '</div>' +
         '<div class="header-right">' +
-          RIGHT_BRAND_SVG +
+          rightBrandHtml +
           '<div class="ruc-line">RUC: ' + e(ruc) + '</div>' +
         '</div>' +
       '</header>' +
@@ -346,14 +405,14 @@ main { position: relative; z-index: 1; }
           '<tr><td class="label-cell">TOTAL</td><td class="amount-cell">' + money(totals.totalFinal) + '</td></tr>' +
         '</tbody></table>' +
       '</section>' +
-      '<table class="cond-table"><thead><tr><th colspan="2">CONDICIONES COMERCIALES</th></tr></thead><tbody><tr>' +
-        '<td class="cond-labels"><div>FORMA DE PAGO / MONEDA</div><div>TIEMPO DE ENTREGA</div><div>VALIDEZ DE OFERTA</div><div>LUGAR DE ENTREGA</div><div>GARANTIA</div><div>OBSERVACIONES</div></td>' +
-        '<td>' + condBodyHtml + '</td>' +
-      '</tr></tbody></table>' +
-      (accounts.length ? '<table class="banks-table"><thead><tr><th colspan="2">NUESTRAS CUENTAS</th></tr></thead><tbody>' +
-        accounts.map(a => '<tr><td class="bank-left"><div>' + e(a.banco) + (a.moneda && !String(a.banco).toUpperCase().includes(String(a.moneda).toUpperCase()) ? ' (' + e(a.moneda) + ')' : '') + '</div><div class="cci-lbl">CCI</div></td>' +
-          '<td class="bank-right"><div>' + e(a.numero) + '</div><div class="cci-val">' + e(a.cci || '-') + '</div></td></tr>').join('') +
-      '</tbody></table>' : '') +
+      '<div class="footer-columns">' +
+        termsHtml +
+        banksHtml +
+      '</div>' +
+      '<footer class="brand">' +
+        '<span>Documento generado con <strong>Coti Ya ®</strong> de <strong>' + e(company) + '</strong></span>' +
+        '<span>wa.me/902874946 · RUC: ' + e(ruc) + '</span>' +
+      '</footer>' +
     '</main></body></html>';
 
   return { html, title, paper };

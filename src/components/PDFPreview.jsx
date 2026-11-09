@@ -44,7 +44,7 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
   const handleFileUpload = field => async event => {
     const file = event.target.files?.[0]; event.target.value = ''; if (!file || uploading) return;
     setUploading(true); setPrintMessage('Preparando imagen…');
-    try { const image = await prepareDocumentImage(file); if (setPdfConfig(prev => ({ ...prev, [field]: image }))) setPrintMessage('Imagen preparada. Puedes imprimir sin agregar firma.'); }
+    try { const image = await prepareDocumentImage(file); if (setPdfConfig(prev => ({ ...prev, [field]: image }))) setPrintMessage('Imagen preparada y aplicada en la vista previa.'); }
     catch (error) { setPrintMessage(error.message); }
     finally { setUploading(false); }
   };
@@ -117,63 +117,140 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
         {readOnly && <p className="mb-3 text-sm text-slate-700">Venta contabilizada: sus importes y partidas están protegidos. {onDuplicate && <button className="underline font-bold" onClick={() => onDuplicate(quote)}>Duplicar como nueva propuesta</button>}</p>}
         {printable.error && <p role="alert" className="p-3 bg-red-50 text-red-800">{printable.error} Abre Personalizar para quitar o reemplazar las imágenes.</p>}
         {printMessage && <p role="status" className="mb-4 rounded-lg bg-blue-50 text-blue-900 p-3 text-sm">{printMessage}</p>}
-        {(pdfConfig.logo || pdfConfig.signature || pdfConfig.watermark) && <button onClick={() => setPdfConfig(prev => ({ ...prev, logo: null, signature: null, watermark: null }))} className="text-sm text-red-700 underline mb-3">Quitar todas las imágenes</button>}
+        {(pdfConfig.logo || pdfConfig.logoRight || pdfConfig.signature || pdfConfig.watermark) && (
+          <button onClick={() => setPdfConfig(prev => ({ ...prev, logo: null, logoRight: null, signature: null, watermark: null }))} className="text-sm text-red-700 underline mb-3">
+            Quitar todas las imágenes
+          </button>
+        )}
+
         {/* --- Panel de Configuración --- */}
         {showConfig && (
           <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-6 animate-slide-down">
-            {/* Columna 1: Estilo + Identidad */}
-            <div className="space-y-6">
+            {/* Columna 1: Logos + Marca de Agua + Estilo */}
+            <div className="space-y-5">
               <div>
-                <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-3 text-sm"><Palette className="h-4 w-4 text-blue-600" /> Colores y Estilo</h3>
+                <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-3 text-sm"><Palette className="h-4 w-4 text-blue-600" /> Colores, Logos y Marca de Agua</h3>
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">Color de Encabezados de Tabla</label>
-                    <div className="flex items-center gap-3">
-                      <input type="color" value={themeColor} onChange={(e) => setPdfConfig({...pdfConfig, color: e.target.value})} className="h-10 w-16 p-1 rounded-lg border cursor-pointer" />
-                      <span className="text-xs text-gray-400 font-mono">{themeColor}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">Estilo de Tabla</label>
-                    <div className="flex gap-2">
-                      {['bordered', 'simple', 'zebra'].map(style => (
-                        <button key={style} onClick={() => setPdfConfig({...pdfConfig, tableStyle: style})} className={`px-3 py-1.5 rounded-lg text-xs border capitalize transition-all ${pdfConfig.tableStyle === style ? 'bg-blue-100 border-blue-400 text-blue-700 font-bold shadow-sm' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}>{style}</button>
-                      ))}
-                    </div>
-                  </div>
-                  <div><label className="block text-xs font-semibold text-gray-500 mb-1">Subir Logo Personalizado</label><input type="file" disabled={uploading} accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleFileUpload('logo')} className="text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" /></div>
-                  <div className="pt-3 border-t border-gray-100">
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">Marca de Agua</label>
-                    <p className="text-xs text-gray-500 mb-1">El texto del PDF seguirá siendo seleccionable.</p>
-                    <input type="file" disabled={uploading} accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleFileUpload('watermark')} className="text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-2" />
-                    {pdfConfig.watermark && (
-                      <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 space-y-2">
-                        <div className="flex items-center gap-2"><label className="text-xs text-gray-500 w-16 shrink-0">Tamaño:</label><input type="range" min="10" max="100" value={pdfConfig.watermarkSize || 50} onChange={e => setPdfConfig({...pdfConfig, watermarkSize: Number(e.target.value)})} className="flex-1 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500" /><span className="text-xs font-bold text-gray-500 w-10 text-right">{pdfConfig.watermarkSize || 50}%</span></div>
-                        <div className="flex items-center gap-2"><label className="text-xs text-gray-500 w-16 shrink-0">Opacidad:</label><input type="range" min="0.01" max="1" step="0.01" value={pdfConfig.watermarkOpacity ?? 0.1} onChange={e => setPdfConfig({...pdfConfig, watermarkOpacity: Number(e.target.value)})} className="flex-1 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500" /><span className="text-xs font-bold text-gray-500 w-10 text-right">{Math.round((pdfConfig.watermarkOpacity ?? 0.1) * 100)}%</span></div>
-                        <button onClick={() => setPdfConfig({...pdfConfig, watermark: null})} className="text-xs text-red-500 hover:text-red-700 font-bold w-full text-right">Quitar Marca de Agua</button>
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">Color de Encabezados</label>
+                      <div className="flex items-center gap-2">
+                        <input type="color" value={themeColor} onChange={(e) => setPdfConfig({...pdfConfig, color: e.target.value})} className="h-9 w-14 p-1 rounded-lg border cursor-pointer" />
+                        <span className="text-xs text-gray-400 font-mono">{themeColor}</span>
                       </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">Estilo de Tabla</label>
+                      <div className="flex gap-1.5">
+                        {['bordered', 'simple', 'zebra'].map(style => (
+                          <button key={style} onClick={() => setPdfConfig({...pdfConfig, tableStyle: style})} className={`px-3 py-1.5 rounded-lg text-xs border capitalize transition-all ${pdfConfig.tableStyle === style ? 'bg-blue-100 border-blue-400 text-blue-700 font-bold shadow-sm' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}>{style}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Logo Izquierdo */}
+                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-gray-700">Logo Izquierdo (Puertas Automáticas)</label>
+                      <button
+                        type="button"
+                        onClick={() => setPdfConfig({ ...pdfConfig, hideLeftLogo: !pdfConfig.hideLeftLogo })}
+                        className={`text-xs font-semibold px-2 py-0.5 rounded border ${pdfConfig.hideLeftLogo ? 'bg-gray-200 text-gray-600 border-gray-300' : 'bg-green-50 text-green-700 border-green-300'}`}
+                      >
+                        {pdfConfig.hideLeftLogo ? 'Oculto (Mostrar)' : 'Visible'}
+                      </button>
+                    </div>
+                    <input type="file" disabled={uploading} accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleFileUpload('logo')} className="text-xs text-gray-500 w-full file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-gray-500 w-16 shrink-0">Tamaño:</label>
+                      <input type="range" min="40" max="160" value={pdfConfig.logoSize || 100} onChange={e => setPdfConfig({ ...pdfConfig, logoSize: Number(e.target.value) })} className="flex-1 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                      <span className="text-xs font-bold text-gray-600 w-10 text-right">{pdfConfig.logoSize || 100}%</span>
+                    </div>
+                    {pdfConfig.logo && (
+                      <button type="button" onClick={() => setPdfConfig({ ...pdfConfig, logo: null })} className="text-xs text-red-600 hover:text-red-800 font-semibold block ml-auto">
+                        Restaurar logo izquierdo SERYVER por defecto
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Logo Derecho */}
+                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-gray-700">Logo Derecho (SERYVER G&amp;G S.A.C)</label>
+                      <button
+                        type="button"
+                        onClick={() => setPdfConfig({ ...pdfConfig, hideRightLogo: !pdfConfig.hideRightLogo })}
+                        className={`text-xs font-semibold px-2 py-0.5 rounded border ${pdfConfig.hideRightLogo ? 'bg-gray-200 text-gray-600 border-gray-300' : 'bg-green-50 text-green-700 border-green-300'}`}
+                      >
+                        {pdfConfig.hideRightLogo ? 'Oculto (Mostrar)' : 'Visible'}
+                      </button>
+                    </div>
+                    <input type="file" disabled={uploading} accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleFileUpload('logoRight')} className="text-xs text-gray-500 w-full file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-gray-500 w-16 shrink-0">Tamaño:</label>
+                      <input type="range" min="40" max="160" value={pdfConfig.logoRightSize || 100} onChange={e => setPdfConfig({ ...pdfConfig, logoRightSize: Number(e.target.value) })} className="flex-1 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                      <span className="text-xs font-bold text-gray-600 w-10 text-right">{pdfConfig.logoRightSize || 100}%</span>
+                    </div>
+                    {pdfConfig.logoRight && (
+                      <button type="button" onClick={() => setPdfConfig({ ...pdfConfig, logoRight: null })} className="text-xs text-red-600 hover:text-red-800 font-semibold block ml-auto">
+                        Restaurar logo derecho SERYVER por defecto
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Marca de Agua */}
+                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-gray-700">Marca de Agua Central</label>
+                      <button
+                        type="button"
+                        onClick={() => setPdfConfig({ ...pdfConfig, hideWatermark: !pdfConfig.hideWatermark })}
+                        className={`text-xs font-semibold px-2 py-0.5 rounded border ${pdfConfig.hideWatermark ? 'bg-gray-200 text-gray-600 border-gray-300' : 'bg-green-50 text-green-700 border-green-300'}`}
+                      >
+                        {pdfConfig.hideWatermark ? 'Oculta (Mostrar)' : 'Visible'}
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-gray-500">Puedes ajustar la marca de agua de SERYVER o subir una propia.</p>
+                    <input type="file" disabled={uploading} accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleFileUpload('watermark')} className="text-xs text-gray-500 w-full file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-gray-500 w-16 shrink-0">Tamaño:</label>
+                      <input type="range" min="10" max="100" value={pdfConfig.watermarkSize || 55} onChange={e => setPdfConfig({...pdfConfig, watermarkSize: Number(e.target.value)})} className="flex-1 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                      <span className="text-xs font-bold text-gray-600 w-10 text-right">{pdfConfig.watermarkSize || 55}%</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-gray-500 w-16 shrink-0">Opacidad:</label>
+                      <input type="range" min="0.01" max="1" step="0.01" value={pdfConfig.watermarkOpacity ?? 0.12} onChange={e => setPdfConfig({...pdfConfig, watermarkOpacity: Number(e.target.value)})} className="flex-1 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                      <span className="text-xs font-bold text-gray-600 w-10 text-right">{Math.round((pdfConfig.watermarkOpacity ?? 0.12) * 100)}%</span>
+                    </div>
+                    {pdfConfig.watermark && (
+                      <button type="button" onClick={() => setPdfConfig({...pdfConfig, watermark: null})} className="text-xs text-red-600 hover:text-red-800 font-semibold block ml-auto">
+                        Restaurar marca de agua SERYVER por defecto
+                      </button>
                     )}
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Columna 2: Identidad + Cuentas + Condiciones */}
+            <div className="flex flex-col h-full space-y-5">
               <div>
-                <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-3 text-sm"><Building className="h-4 w-4 text-blue-600" /> Identidad de la Empresa</h3>
+                <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-3 text-sm"><Building className="h-4 w-4 text-blue-600" /> Identidad de la Empresa y Firma</h3>
                 <div className="space-y-3">
                   <div><label className="block text-xs font-semibold text-gray-500 mb-1">Nombre</label><input className="w-full border border-gray-300 p-2 rounded-lg text-sm" value={pdfConfig.companyName || ''} onChange={e => setPdfConfig({...pdfConfig, companyName: e.target.value})} placeholder="Ej: SERYVER G&G S.A.C" /></div>
                   <div><label className="block text-xs font-semibold text-gray-500 mb-1">Subtítulo / Slogan</label><input className="w-full border border-gray-300 p-2 rounded-lg text-sm" value={pdfConfig.companySubtitle || ''} onChange={e => setPdfConfig({...pdfConfig, companySubtitle: e.target.value})} placeholder="Expertos en seguridad..." /></div>
                   <div><label className="block text-xs font-semibold text-gray-500 mb-1">RUC</label><input className="w-full border border-gray-300 p-2 rounded-lg text-sm font-mono" value={pdfConfig.companyRuc || ''} onChange={e => setPdfConfig({...pdfConfig, companyRuc: e.target.value})} placeholder="20614510421" /></div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">Firma (opcional; puedes agregarla después)</label>
-                    <input type="file" disabled={uploading} accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleFileUpload('signature')} className="text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Firma Comercial (opcional)</label>
+                    <input type="file" disabled={uploading} accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleFileUpload('signature')} className="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
                     {pdfConfig.signature && <button onClick={() => setPdfConfig({...pdfConfig, signature: null})} className="text-xs text-red-500 hover:text-red-700 font-bold block mt-2">Quitar Firma</button>}
                   </div>
                 </div>
               </div>
-            </div>
-            {/* Columna 2: Cuentas + Condiciones */}
-            <div className="flex flex-col h-full space-y-6">
+
               <div>
-                <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-3 text-sm"><Landmark className="h-4 w-4 text-blue-600" /> Cuentas Bancarias (Tabla NUESTRAS CUENTAS)</h3>
+                <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-3 text-sm"><Landmark className="h-4 w-4 text-blue-600" /> Cuentas Bancarias</h3>
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <input placeholder="Banco (Ej: BCP SOLES SERYVER)" className="border border-gray-300 p-2 rounded-lg text-xs" value={newBank.banco} onChange={e => setNewBank({...newBank, banco: e.target.value})} />
                   <input placeholder="Moneda" className="border border-gray-300 p-2 rounded-lg text-xs" value={newBank.moneda} onChange={e => setNewBank({...newBank, moneda: e.target.value})} />
