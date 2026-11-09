@@ -1,7 +1,8 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { prepareDocumentImage, validatePdfConfig } from '../utils/documentImages';
 import { isPosted } from '../utils/business';
 import { renderQuoteDocument } from '../../electron/quoteDocument.mjs';
+import { DEFAULT_ACCOUNTS } from '../services/defaultData';
 import { ArrowLeft, Settings, Save, Printer, Palette, Building, Landmark, Trash2, FileText } from 'lucide-react';
 import { calculateQuoteTotals, formatCurrency, reverseCalculateGanancia } from '../utils/math';
 
@@ -19,9 +20,17 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
   const setPdfConfig = update => { try { savePdfConfig(prev => validatePdfConfig(typeof update === 'function' ? update(prev) : update)); return true; } catch (error) { setPrintMessage(error.message); return false; } };
   const [newBank, setNewBank] = useState({ banco: '', moneda: 'Soles', numero: '', cci: '' });
 
+  useEffect(() => {
+    const accs = Array.isArray(pdfConfig?.accounts) ? pdfConfig.accounts : [];
+    const hasDemo = accs.length > 0 && accs.every(a => ['123-456789-00', '987-654321-00'].includes(String(a.numero || '').trim()));
+    if (hasDemo) {
+      try { savePdfConfig(prev => validatePdfConfig({ ...prev, accounts: DEFAULT_ACCOUNTS })); } catch { /* ignore */ }
+    }
+  }, [pdfConfig?.accounts, savePdfConfig]);
+
   // --- Motor financiero centralizado ---
   const { subtotal, igv, totalFinal } = calculateQuoteTotals(quote);
-  const themeColor = pdfConfig.color || '#1e3a8a';
+  const themeColor = pdfConfig.color || '#d99b26';
 
   // --- Handlers ---
   const addBankAccount = () => {
@@ -97,7 +106,7 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
         </div>
 
         <div className="flex flex-wrap gap-3 items-center justify-between mb-4">
-          <p className="text-xs text-slate-500">Texto seleccionable · Márgenes de 15 mm · Numeración de páginas ({igv > 0 ? `IGV: ${formatCurrency(igv)}` : 'Sin IGV'})</p>
+          <p className="text-xs text-slate-500">Formato oficial SERYVER G&G · Texto seleccionable · Numeración de páginas ({igv > 0 ? `IGV: ${formatCurrency(igv)}` : 'Sin IGV'})</p>
           <div className="flex gap-3 items-center">
             <label className="text-xs text-slate-600">Total ({quote.moneda || 'S/'})
               <input disabled={readOnly} aria-label="Total de la cotización" type="number" min="0" step="0.01" key={totalFinal.toFixed(2)} defaultValue={totalFinal.toFixed(2)} onBlur={handleTotalChange} className="ml-2 w-28 p-2 border rounded-lg text-right text-sm" />
@@ -118,7 +127,7 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
                 <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-3 text-sm"><Palette className="h-4 w-4 text-blue-600" /> Colores y Estilo</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">Color de Empresa</label>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Color de Encabezados de Tabla</label>
                     <div className="flex items-center gap-3">
                       <input type="color" value={themeColor} onChange={(e) => setPdfConfig({...pdfConfig, color: e.target.value})} className="h-10 w-16 p-1 rounded-lg border cursor-pointer" />
                       <span className="text-xs text-gray-400 font-mono">{themeColor}</span>
@@ -132,7 +141,7 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
                       ))}
                     </div>
                   </div>
-                  <div><label className="block text-xs font-semibold text-gray-500 mb-1">Subir Logo</label><input type="file" disabled={uploading} accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleFileUpload('logo')} className="text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" /></div>
+                  <div><label className="block text-xs font-semibold text-gray-500 mb-1">Subir Logo Personalizado</label><input type="file" disabled={uploading} accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleFileUpload('logo')} className="text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" /></div>
                   <div className="pt-3 border-t border-gray-100">
                     <label className="block text-xs font-semibold text-gray-500 mb-1">Marca de Agua</label>
                     <p className="text-xs text-gray-500 mb-1">El texto del PDF seguirá siendo seleccionable.</p>
@@ -150,7 +159,7 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
               <div>
                 <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-3 text-sm"><Building className="h-4 w-4 text-blue-600" /> Identidad de la Empresa</h3>
                 <div className="space-y-3">
-                  <div><label className="block text-xs font-semibold text-gray-500 mb-1">Nombre</label><input className="w-full border border-gray-300 p-2 rounded-lg text-sm" value={pdfConfig.companyName || ''} onChange={e => setPdfConfig({...pdfConfig, companyName: e.target.value})} placeholder="Ej: PUERTAS AUTOMÁTICAS" /></div>
+                  <div><label className="block text-xs font-semibold text-gray-500 mb-1">Nombre</label><input className="w-full border border-gray-300 p-2 rounded-lg text-sm" value={pdfConfig.companyName || ''} onChange={e => setPdfConfig({...pdfConfig, companyName: e.target.value})} placeholder="Ej: SERYVER G&G S.A.C" /></div>
                   <div><label className="block text-xs font-semibold text-gray-500 mb-1">Subtítulo / Slogan</label><input className="w-full border border-gray-300 p-2 rounded-lg text-sm" value={pdfConfig.companySubtitle || ''} onChange={e => setPdfConfig({...pdfConfig, companySubtitle: e.target.value})} placeholder="Expertos en seguridad..." /></div>
                   <div><label className="block text-xs font-semibold text-gray-500 mb-1">RUC</label><input className="w-full border border-gray-300 p-2 rounded-lg text-sm font-mono" value={pdfConfig.companyRuc || ''} onChange={e => setPdfConfig({...pdfConfig, companyRuc: e.target.value})} placeholder="20614510421" /></div>
                   <div>
@@ -164,9 +173,9 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
             {/* Columna 2: Cuentas + Condiciones */}
             <div className="flex flex-col h-full space-y-6">
               <div>
-                <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-3 text-sm"><Landmark className="h-4 w-4 text-blue-600" /> Cuentas Bancarias</h3>
+                <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-3 text-sm"><Landmark className="h-4 w-4 text-blue-600" /> Cuentas Bancarias (Tabla NUESTRAS CUENTAS)</h3>
                 <div className="grid grid-cols-2 gap-2 mb-2">
-                  <input placeholder="Banco (Ej: BCP)" className="border border-gray-300 p-2 rounded-lg text-xs" value={newBank.banco} onChange={e => setNewBank({...newBank, banco: e.target.value})} />
+                  <input placeholder="Banco (Ej: BCP SOLES SERYVER)" className="border border-gray-300 p-2 rounded-lg text-xs" value={newBank.banco} onChange={e => setNewBank({...newBank, banco: e.target.value})} />
                   <input placeholder="Moneda" className="border border-gray-300 p-2 rounded-lg text-xs" value={newBank.moneda} onChange={e => setNewBank({...newBank, moneda: e.target.value})} />
                   <input placeholder="N° Cuenta" className="border border-gray-300 p-2 rounded-lg text-xs" value={newBank.numero} onChange={e => setNewBank({...newBank, numero: e.target.value})} />
                   <input placeholder="CCI (Opcional)" className="border border-gray-300 p-2 rounded-lg text-xs" value={newBank.cci} onChange={e => setNewBank({...newBank, cci: e.target.value})} />
@@ -175,7 +184,7 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
                 <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
                   {pdfConfig.accounts?.map((acc) => (
                     <div key={acc.id} className="flex justify-between items-center bg-gray-50 p-2.5 rounded-lg border border-gray-200 text-xs">
-                      <div><p className="font-bold text-gray-700">{acc.banco} ({acc.moneda})</p><p className="text-gray-500 font-mono">{acc.numero}</p></div>
+                      <div><p className="font-bold text-gray-700">{acc.banco} ({acc.moneda})</p><p className="text-gray-500 font-mono">{acc.numero} {acc.cci ? `· CCI: ${acc.cci}` : ''}</p></div>
                       <button onClick={() => removeBankAccount(acc.id)} className="text-red-400 hover:text-red-600 p-1"><Trash2 className="h-3 w-3" /></button>
                     </div>
                   ))}
