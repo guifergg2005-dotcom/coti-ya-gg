@@ -14,7 +14,7 @@ const WorkOrderManager = lazy(() => import('./components/WorkOrderManager'));
 const RemindersPanel = lazy(() => import('./components/RemindersPanel'));
 import Toast from './components/ui/Toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { isPosted, nonNegative } from './utils/business';
+import { isPosted } from './utils/business';
 import { 
   Menu, Plus, Package, Cloud, CheckCircle, RefreshCw, X, HardDrive, Download, LogOut, Users, BarChart2, DollarSign, Briefcase, Shield, HardHat, Bell 
 } from 'lucide-react';
@@ -104,9 +104,9 @@ export default function App() {
 
   // --- RENDERIZADO VISUAL CONDICIONAL ---
   if (showIntro) return <><InjectStyles /><IntroScreen onFinish={() => setShowIntro(false)} /></>;
-  if (!auth.currentUser) return <><InjectStyles /><LoginScreen onLogin={async (username, password) => { await auth.handleLogin(username, password); setView("dashboard"); }} /></>;
+  if (!auth.currentUser) return <div className="mobile-shell"><InjectStyles /><LoginScreen onLogin={async (username, password) => { await auth.handleLogin(username, password); setView("dashboard"); }} /></div>;
 
-  if (!appData.isReady) return <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center gap-4"><p>{appData.cloudError || "Cargando los datos de tu cuenta…"}</p><button onClick={() => window.location.reload()}>Volver a intentar</button><button onClick={() => auth.handleLogout(setView)}>Cerrar sesión</button></div>;
+  if (!appData.isReady) return <div className="mobile-shell min-h-screen bg-slate-900 text-white p-6 flex flex-col items-center justify-center gap-4 text-center"><p>{appData.cloudError || "Cargando los datos de tu cuenta…"}</p><button className="border border-slate-600 px-4 py-2 rounded-lg" onClick={() => window.location.reload()}>Volver a intentar</button><button className="text-slate-300 underline" onClick={() => auth.handleLogout(setView)}>Cerrar sesión</button></div>;
 
   return (
     <><InjectStyles />
@@ -128,25 +128,25 @@ export default function App() {
       </div>
     )}
 
-    <div className="min-h-screen bg-gray-50 print:bg-white font-sans text-gray-800 flex flex-col h-screen print:h-auto overflow-hidden print:overflow-visible animate-fade-in print:block">
-      <nav className="bg-slate-900 text-white p-3 shadow-lg flex-shrink-0 print:hidden z-50 relative">
-        {appData.cloudError && <div className="absolute top-0 left-0 w-full bg-red-500 text-white text-[10px] text-center py-1 font-bold z-50">{appData.cloudError} <button className="underline mx-2" onClick={appData.retry}>Reintentar guardado</button><button className="underline" onClick={() => { exportDataFallback(); if (window.confirm("Se descargó una copia de tus datos. ¿Descartar los cambios pendientes y cargar la versión de la nube?")) { try { appData.discardPending(); } catch (e) { showToast(e.message, "error"); } } }}>Resolver con versión de la nube</button></div>}
-        <div className="max-w-7xl mx-auto flex justify-between items-center mt-2">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('dashboard')}>
-            <div className="bg-cyan-600 p-2 rounded-lg"><Package className="h-6 w-6 text-white" /></div>
-            <div>
-                <h1 className="text-xl font-bold tracking-tight leading-none text-cyan-50">Coty Ya&reg;</h1>
-                <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] bg-green-900/50 px-2 py-0.5 rounded text-green-300 border border-green-700 flex items-center gap-1"><Cloud size={8} /> Firebase</span>
-                    <span className="text-[10px] text-gray-400 flex items-center gap-1">
+    <div className="mobile-shell min-h-screen bg-gray-50 print:bg-white font-sans text-gray-800 flex flex-col h-dvh print:h-auto overflow-hidden print:overflow-visible animate-fade-in print:block">
+      <nav className="bg-slate-900 text-white px-3 py-2.5 md:p-3 shadow-lg flex-shrink-0 print:hidden z-50 relative">
+        {appData.cloudError && <div className="bg-red-500 text-white text-[11px] text-center py-1 px-2 font-bold z-50 rounded mb-1.5">{appData.cloudError} <button className="underline mx-2" onClick={appData.retry}>Reintentar guardado</button><button className="underline" onClick={() => { exportDataFallback(); if (window.confirm("Se descargó una copia de tus datos. ¿Descartar los cambios pendientes y cargar la versión de la nube?")) { try { appData.discardPending(); } catch (e) { showToast(e.message, "error"); } } }}>Resolver con versión de la nube</button></div>}
+        <div className="max-w-7xl mx-auto flex justify-between items-center gap-2">
+          <div className="flex items-center gap-2.5 cursor-pointer min-w-0" onClick={() => setView('dashboard')}>
+            <div className="bg-cyan-600 p-2 rounded-lg shrink-0"><Package className="h-5 w-5 md:h-6 md:w-6 text-white" /></div>
+            <div className="min-w-0">
+                <h1 className="text-lg md:text-xl font-bold tracking-tight leading-none text-cyan-50 truncate">Coty Ya&reg;</h1>
+                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    <span className="text-[10px] bg-green-900/50 px-1.5 py-0.5 rounded text-green-300 border border-green-700 flex items-center gap-1"><Cloud size={8} /> Firebase</span>
+                    <span className="text-[10px] text-gray-400 flex items-center gap-1 truncate">
                         {appData.saveStatus === 'error' ? <span className="text-red-300">Error al guardar</span> : appData.saveStatus === 'offline' ? <span>Sin conexión; cambios locales</span> : appData.saveStatus === 'loading' ? <span>Cargando datos…</span> : appData.saveStatus === 'saved' ? (<span key="saved" className="flex items-center gap-1"><CheckCircle size={10} className="text-green-500" /> Sincronizado</span>) : (<span key="saving" className="flex items-center gap-1"><RefreshCw size={10} className="animate-spin text-yellow-500" /> Guardando...</span>)}
                     </span>
                 </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-          <button onClick={() => setIsDrawerOpen(true)} className="md:hidden text-slate-300 hover:text-white p-2"><Menu size={24} /></button>
-            <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
+          <div className="flex items-center gap-2 md:gap-3 shrink-0">
+            <button onClick={() => setIsDrawerOpen(true)} aria-label="Abrir menú" className="md:hidden text-slate-200 hover:text-white p-2 rounded-lg bg-slate-800"><Menu size={22} /></button>
+            <div className="hidden md:flex gap-1 bg-slate-800 p-1 rounded-lg">
               <NavButton active={view === 'dashboard'} onClick={() => setView('dashboard')} icon={<Users size={16}/>}>Ventas</NavButton>
               {(auth.currentUser.role === 'admin' || auth.currentUser.permissions?.reports) && (<NavButton active={view === 'analytics'} onClick={() => setView('analytics')} icon={<BarChart2 size={16}/>}>Reportes</NavButton>)}
               {(auth.currentUser.role === 'admin' || auth.currentUser.permissions?.accounting) && (<NavButton active={view === 'accounting'} onClick={() => setView('accounting')} icon={<DollarSign size={16}/>}>Caja</NavButton>)}
@@ -156,7 +156,7 @@ export default function App() {
               <NavButton active={view === 'inventory'} onClick={() => setView('inventory')} icon={<Briefcase size={16}/>}>Inventario</NavButton>
               {auth.currentUser.role === 'admin' && (<NavButton active={view === 'users'} onClick={() => setView('users')} icon={<Shield size={16}/>}>Usuarios</NavButton>)}
             </div>
-            <button onClick={() => logout()} className="text-slate-400 hover:text-red-400 ml-2" title="Cerrar Sesión"><LogOut size={18} /></button>
+            <button onClick={() => logout()} className="text-slate-400 hover:text-red-400 p-1.5 md:ml-1" title="Cerrar Sesión"><LogOut size={18} /></button>
           </div>
         </div>
       </nav>
@@ -164,10 +164,10 @@ export default function App() {
       {isDrawerOpen && (
         <div className="fixed inset-0 z-[60] flex md:hidden">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsDrawerOpen(false)}></div>
-          <div className="relative w-64 bg-slate-900 h-full flex flex-col shadow-2xl animate-fade-in-up" style={{animation: 'slide-right 0.3s ease-out forwards'}}>
+          <div className="relative w-72 max-w-[85vw] bg-slate-900 h-full flex flex-col shadow-2xl animate-fade-in-up">
             <div className="p-4 border-b border-slate-700 flex justify-between items-center">
-              <span className="font-bold text-white text-lg flex items-center gap-2"><Package size={20} className="text-cyan-400"/> Menu</span>
-              <button onClick={() => setIsDrawerOpen(false)} className="text-slate-400 hover:text-white"><X size={20}/></button>
+              <span className="font-bold text-white text-lg flex items-center gap-2"><Package size={20} className="text-cyan-400"/> Menú Principal</span>
+              <button onClick={() => setIsDrawerOpen(false)} aria-label="Cerrar menú" className="text-slate-400 hover:text-white p-1"><X size={20}/></button>
             </div>
             <div className="flex-1 overflow-y-auto py-4 flex flex-col gap-2 px-3">
               <NavButton active={view === 'dashboard'} onClick={() => { setView('dashboard'); setIsDrawerOpen(false); }} icon={<Users size={18}/>}>Ventas</NavButton>
@@ -179,16 +179,19 @@ export default function App() {
               <NavButton active={view === 'inventory'} onClick={() => { setView('inventory'); setIsDrawerOpen(false); }} icon={<Briefcase size={18}/>}>Inventario</NavButton>
               {auth.currentUser.role === 'admin' && (<NavButton active={view === 'users'} onClick={() => { setView('users'); setIsDrawerOpen(false); }} icon={<Shield size={18}/>}>Usuarios</NavButton>)}
             </div>
-            <div className="p-4 border-t border-slate-700 bg-slate-800/50">
-              <span className="block text-xs text-slate-500 mb-2">Usuario Activo:</span>
-              <div className="font-bold text-white mb-4">{auth.currentUser.username}</div>
-              <button onClick={() => { logout(); setIsDrawerOpen(false); }} className="w-full bg-slate-800 hover:bg-red-900 text-slate-300 hover:text-red-300 p-2 rounded flex items-center justify-center gap-2 transition-colors"><LogOut size={16}/> Cerrar Sesion</button>
+            <div className="p-4 border-t border-slate-700 bg-slate-800/50 space-y-2.5">
+              <div>
+                <span className="block text-xs text-slate-400">Usuario Activo:</span>
+                <div className="font-bold text-white text-sm">{auth.currentUser.username} <span className="text-xs text-cyan-400 font-normal">[{auth.currentUser.role}]</span></div>
+              </div>
+              <button onClick={() => { exportData(); setIsDrawerOpen(false); }} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 p-2.5 rounded-lg flex items-center justify-center gap-2 text-xs font-semibold transition-colors border border-slate-700"><Download size={15}/> Copia de Seguridad Manual</button>
+              <button onClick={() => { logout(); setIsDrawerOpen(false); }} className="w-full bg-slate-800 hover:bg-red-900 text-slate-300 hover:text-red-200 p-2.5 rounded-lg flex items-center justify-center gap-2 text-xs font-semibold transition-colors border border-slate-700"><LogOut size={15}/> Cerrar Sesión</button>
             </div>
           </div>
         </div>
       )}
 
-      <main className="flex-1 overflow-y-auto print:overflow-visible bg-gray-100 p-4 print:p-0 print:bg-white print:block">
+      <main className={'view-' + view + ' flex-1 min-h-0 overflow-y-auto print:overflow-visible bg-gray-100 p-3 md:p-4 print:p-0 print:bg-white print:block'}>
         <div className="max-w-7xl mx-auto h-full print:h-auto print:block"><ErrorBoundary key={view} onReset={() => setView('dashboard')}><Suspense fallback={<p className="p-6">Cargando pantalla…</p>}>
             {view === 'dashboard' && <Dashboard history={appData.history} clients={appData.clients} onNew={cart.startNewQuote} onLoad={(q) => { appData.setCurrentQuote(q); setView(isPosted(q) ? 'preview' : 'creator'); }} onDuplicate={cart.duplicateQuote} onStatusChange={cart.changeQuoteStatus} onDelete={cart.deleteQuote} onUpdateQuote={cart.updateQuoteDetails} />}
             {view === 'analytics' && <AnalyticsDashboard history={appData.history} transactions={appData.transactions} />}
@@ -209,11 +212,31 @@ export default function App() {
         </Suspense></ErrorBoundary></div>
       </main>
       <Toast message={toast.show ? toast.message : null} type={toast.type} onClose={() => setToast({ ...toast, show: false })} />
-      {['dashboard', 'inventory', 'analytics', 'users', 'accounting', 'work_orders', 'reminders'].includes(view) && (
-        <button onClick={cart.startNewQuote} className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-gradient-to-r from-blue-600 to-cyan-600 print:hidden text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_8px_30px_rgb(0,0,0,0.3)] transform transition-transform hover:scale-110 active:scale-95"><Plus size={28} strokeWidth={2.5} /></button>
-      )}
 
-      <div className="bg-white border-t p-2 text-xs text-gray-500 flex justify-between items-center print:hidden">
+      <div className="md:hidden bg-white border-t border-slate-200 grid grid-cols-5 shrink-0 mobile-bottom print:hidden z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]" role="navigation" aria-label="Navegación móvil">
+        <button onClick={() => setView('dashboard')} className={`py-2 px-1 flex flex-col items-center justify-center gap-0.5 text-[11px] ${view === 'dashboard' ? 'text-cyan-700 font-bold' : 'text-slate-600'}`}>
+          <Users size={19} />
+          <span>Ventas</span>
+        </button>
+        <button onClick={cart.startNewQuote} className={`py-2 px-1 flex flex-col items-center justify-center gap-0.5 text-[11px] ${view === 'creator' ? 'text-blue-700 font-bold' : 'text-blue-600 font-semibold'}`}>
+          <Plus size={20} strokeWidth={2.5} />
+          <span>Cotizar</span>
+        </button>
+        <button onClick={() => setView('work_orders')} className={`py-2 px-1 flex flex-col items-center justify-center gap-0.5 text-[11px] ${view === 'work_orders' ? 'text-cyan-700 font-bold' : 'text-slate-600'}`}>
+          <HardHat size={19} />
+          <span>Obras</span>
+        </button>
+        <button onClick={() => setView('inventory')} className={`py-2 px-1 flex flex-col items-center justify-center gap-0.5 text-[11px] ${view === 'inventory' ? 'text-cyan-700 font-bold' : 'text-slate-600'}`}>
+          <Briefcase size={19} />
+          <span>Inventario</span>
+        </button>
+        <button onClick={() => setIsDrawerOpen(true)} className="py-2 px-1 flex flex-col items-center justify-center gap-0.5 text-[11px] text-slate-600">
+          <Menu size={19} />
+          <span>Más</span>
+        </button>
+      </div>
+
+      <div className="hidden md:flex bg-white border-t p-2 text-xs text-gray-500 justify-between items-center print:hidden">
           <span>Usuario: <b>{auth.currentUser.username}</b> [{auth.currentUser.role}]</span>
           <button onClick={exportData} className="flex items-center gap-1 hover:text-blue-600 transition-colors"><Download size={12} /> Copia de Seguridad Manual</button>
       </div>

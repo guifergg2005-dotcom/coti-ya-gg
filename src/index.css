@@ -95,3 +95,36 @@
     z-index: 100;
   }
 }
+
+/* Mobile shell: safe areas, keyboard resizing and contained horizontal tables. */
+html, body, #root { width: 100%; margin: 0; overscroll-behavior: none; }
+.mobile-shell { padding-top: env(safe-area-inset-top); max-width: 100%; -webkit-tap-highlight-color: transparent; }
+.mobile-bottom { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+.mobile-shell main > div { min-width: 0; max-width: 100%; }
+.mobile-shell input, .mobile-shell select, .mobile-shell textarea { min-width: 0; max-width: 100%; }
+.overflow-x-auto { -webkit-overflow-scrolling: touch; }
+@media (max-width: 767px) {
+  .mobile-shell input:not([type=checkbox]):not([type=range]):not([type=color]), .mobile-shell textarea, .mobile-shell select { font-size: 16px; }
+  .mobile-shell main { padding: 10px; }
+  .mobile-shell .p-6 { padding: 16px; }
+  .mobile-shell .text-2xl { font-size: 1.2rem; }
+  .mobile-shell [aria-label="Filtrar categoría"] { max-width: 45%; }
+  .mobile-shell [aria-label="Editor de catálogo"] { scroll-margin-top: 10px; }
+  .mobile-shell .quote-catalog { order: -1; }
+  .mobile-shell .quote-catalog > div { position: static; height: auto; max-height: none; }
+  .mobile-shell .quote-catalog .overflow-y-auto { flex: none; height: min(320px, 45dvh); min-height: 180px; }
+  .mobile-shell nav > button { min-width: 0; padding-left: 2px; padding-right: 2px; font-size: clamp(9px, 2.8vw, 12px); }
+  .view-dashboard > div > div:first-child > div { min-width: 0; width: 100%; }
+  .view-dashboard > div > div:first-child > div > .flex { flex-wrap: wrap; gap: 8px; }
+  .view-dashboard > div > div:first-child > div > .flex > button { flex: 1 1 100px; }
+  .view-dashboard .bg-gray-50.flex { flex-wrap: wrap; gap: 8px; }
+  .mobile-shell [role=dialog] .flex { flex-wrap: wrap; }
+  .mobile-shell table { min-width: 580px; }
+  .mobile-shell .grid { min-width: 0; }
+  .mobile-shell [title="Vista previa de la cotización"] { max-width: none; }
+}
+@media print {
+  .mobile-shell { height: auto; display: block; padding: 0; overflow: visible; }
+  .mobile-shell main { overflow: visible; padding: 0; }
+  .mobile-shell table { min-width: 0; }
+}

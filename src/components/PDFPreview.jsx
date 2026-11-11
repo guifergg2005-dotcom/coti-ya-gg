@@ -13,12 +13,29 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
   const [printing, setPrinting] = useState(false);
   const [printMessage, setPrintMessage] = useState('');
   const [previewHeight, setPreviewHeight] = useState(1200);
+  const [fitMobile, setFitMobile] = useState(true);
+  const [containerWidth, setContainerWidth] = useState(0);
   const previewFrame = useRef(null);
+  const previewWrapRef = useRef(null);
   const readOnly = isPosted(quote);
   const [uploading, setUploading] = useState(false);
   const printable = useMemo(() => { try { return renderQuoteDocument({ quote, pdfConfig }); } catch (error) { return { error: error.message }; } }, [quote, pdfConfig]);
   const setPdfConfig = update => { try { savePdfConfig(prev => validatePdfConfig(typeof update === 'function' ? update(prev) : update)); return true; } catch (error) { setPrintMessage(error.message); return false; } };
   const [newBank, setNewBank] = useState({ banco: '', moneda: 'Soles', numero: '', cci: '' });
+
+  useEffect(() => {
+    const el = previewWrapRef.current;
+    if (!el || typeof window === 'undefined') return;
+    const updateWidth = () => setContainerWidth(el.clientWidth || window.innerWidth || 0);
+    updateWidth();
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(updateWidth);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
 
   useEffect(() => {
     const accs = Array.isArray(pdfConfig?.accounts) ? pdfConfig.accounts : [];
@@ -78,28 +95,33 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
     finally { setPrinting(false); }
   };
 
+  const paperPx = Math.round(((printable.paper?.width || 210) * 96) / 25.4);
+  const availablePx = containerWidth > 0 ? Math.max(250, containerWidth - 16) : paperPx;
+  const isCompactScreen = containerWidth > 0 && availablePx < paperPx;
+  const scale = fitMobile && isCompactScreen ? Math.max(0.32, Math.min(1, availablePx / paperPx)) : 1;
+
   return (
     <div className="flex flex-col items-center animate-fade-in print:animate-none pb-10 print:block print:pb-0">
 
       {/* ===== BARRA DE ACCIONES (oculta en impresión) ===== */}
-      <div className="w-full max-w-4xl mb-6 print:hidden">
-        <div className="flex justify-between items-center mb-4">
-          <button onClick={onBack} className="text-gray-600 hover:text-gray-900 flex items-center gap-2 font-medium transition-colors">
+      <div className="w-full max-w-4xl mb-4 sm:mb-6 print:hidden">
+        <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
+          <button onClick={onBack} className="text-gray-600 hover:text-gray-900 flex items-center gap-1.5 font-medium transition-colors py-1.5 px-2 rounded-lg hover:bg-gray-100">
             <ArrowLeft className="h-5 w-5" /> {readOnly ? "Volver" : "Editar"}
           </button>
-          <div className="flex gap-3 items-center flex-wrap justify-end">
-            <button onClick={() => setShowConfig(!showConfig)} className={`px-4 py-2 rounded-lg flex items-center gap-2 font-bold text-sm shadow-sm transition-all ${showConfig ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+          <div className="flex gap-2 sm:gap-3 items-center flex-wrap justify-end">
+            <button onClick={() => setShowConfig(!showConfig)} className={`px-3 sm:px-4 py-2 rounded-lg flex items-center gap-1.5 sm:gap-2 font-bold text-xs sm:text-sm shadow-sm transition-all ${showConfig ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
               <Settings className="h-4 w-4" /> Personalizar
             </button>
-            <button disabled={readOnly || uploading} onClick={onSave} className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-semibold text-sm shadow-sm hover:bg-green-700 transition-colors">
+            <button disabled={readOnly || uploading} onClick={onSave} className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center gap-1.5 sm:gap-2 font-semibold text-xs sm:text-sm shadow-sm hover:bg-green-700 transition-colors disabled:opacity-50">
               <Save className="h-4 w-4" /> Guardar
             </button>
             <div className="flex items-center gap-2">
-              <select value={pdfConfig.pageSize || 'A4'} onChange={(e) => setPdfConfig({...pdfConfig, pageSize: e.target.value})} className="text-sm border border-gray-300 rounded-lg p-2 outline-none focus:ring-1 focus:ring-blue-300">
+              <select value={pdfConfig.pageSize || 'A4'} onChange={(e) => setPdfConfig({...pdfConfig, pageSize: e.target.value})} className="text-xs sm:text-sm border border-gray-300 rounded-lg p-2 outline-none focus:ring-1 focus:ring-blue-300 bg-white">
                 <option value="A4">A4</option><option value="Carta">Carta</option><option value="Oficio">Oficio</option>
               </select>
             </div>
-            <button disabled={printing || uploading || !!printable.error} onClick={() => handlePrint('print')} className="bg-blue-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 font-bold text-sm shadow-lg hover:bg-blue-700 transition-colors">
+            <button disabled={printing || uploading || !!printable.error} onClick={() => handlePrint('print')} className="bg-blue-600 text-white px-4 sm:px-5 py-2 rounded-lg flex items-center gap-1.5 sm:gap-2 font-bold text-xs sm:text-sm shadow-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
               <Printer className="h-4 w-4" /> {printing ? 'Procesando…' : 'Imprimir'}
             </button>
           </div>
@@ -107,11 +129,20 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
 
         <div className="flex flex-wrap gap-3 items-center justify-between mb-4">
           <p className="text-xs text-slate-500">Formato oficial SERYVER G&G · Texto seleccionable · Numeración de páginas ({igv > 0 ? `IGV: ${formatCurrency(igv)}` : 'Sin IGV'})</p>
-          <div className="flex gap-3 items-center">
-            <label className="text-xs text-slate-600">Total ({quote.moneda || 'S/'})
-              <input disabled={readOnly} aria-label="Total de la cotización" type="number" min="0" step="0.01" key={totalFinal.toFixed(2)} defaultValue={totalFinal.toFixed(2)} onBlur={handleTotalChange} className="ml-2 w-28 p-2 border rounded-lg text-right text-sm" />
+          <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
+            {isCompactScreen && (
+              <button
+                type="button"
+                onClick={() => setFitMobile(v => !v)}
+                className="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-semibold text-xs hover:bg-slate-50"
+              >
+                {fitMobile ? 'Zoom 100%' : 'Ajustar a pantalla'}
+              </button>
+            )}
+            <label className="text-xs text-slate-600 flex items-center">Total ({quote.moneda || 'S/'})
+              <input disabled={readOnly} aria-label="Total de la cotización" type="number" min="0" step="0.01" key={totalFinal.toFixed(2)} defaultValue={totalFinal.toFixed(2)} onBlur={handleTotalChange} className="ml-2 w-28 p-2 border rounded-lg text-right text-sm bg-white" />
             </label>
-            <button disabled={printing || uploading || !!printable.error} onClick={() => handlePrint('pdf')} className="px-4 py-2 rounded-lg border border-blue-600 text-blue-700 font-semibold text-sm disabled:opacity-50">Guardar PDF</button>
+            <button disabled={printing || uploading || !!printable.error} onClick={() => handlePrint('pdf')} className="px-3.5 py-2 rounded-lg border border-blue-600 text-blue-700 font-semibold text-xs sm:text-sm disabled:opacity-50 bg-white hover:bg-blue-50">Guardar PDF</button>
           </div>
         </div>
         {readOnly && <p className="mb-3 text-sm text-slate-700">Venta contabilizada: sus importes y partidas están protegidos. {onDuplicate && <button className="underline font-bold" onClick={() => onDuplicate(quote)}>Duplicar como nueva propuesta</button>}</p>}
@@ -278,10 +309,23 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
         )}
       </div>
 
-      <div className="w-full overflow-x-auto bg-slate-200 p-3 rounded-lg print:p-0">
-        {!printable.error && <iframe ref={previewFrame} title="Vista previa de la cotización" sandbox="allow-same-origin allow-modals" srcDoc={printable.html}
-          onLoad={event => setPreviewHeight(Math.max(600, event.currentTarget.contentDocument?.documentElement.scrollHeight || 1200))}
-          style={{ width: printable.paper.width + 'mm', height: previewHeight, border: 0, display: 'block', margin: '0 auto', background: 'white' }} />}
+      <div ref={previewWrapRef} className="w-full overflow-x-auto bg-slate-200 p-2 sm:p-3 rounded-lg print:p-0">
+        {!printable.error && (
+          <div style={scale < 1 ? { width: Math.round(paperPx * scale), height: Math.round(previewHeight * scale), margin: '0 auto', overflow: 'hidden' } : undefined}>
+            <iframe ref={previewFrame} title="Vista previa de la cotización" sandbox="allow-same-origin allow-modals" srcDoc={printable.html}
+              onLoad={event => setPreviewHeight(Math.max(600, event.currentTarget.contentDocument?.documentElement.scrollHeight || 1200))}
+              style={{
+                width: printable.paper.width + 'mm',
+                height: previewHeight,
+                border: 0,
+                display: 'block',
+                margin: scale < 1 ? 0 : '0 auto',
+                background: 'white',
+                transform: scale < 1 ? `scale(${scale})` : undefined,
+                transformOrigin: scale < 1 ? 'top left' : undefined
+              }} />
+          </div>
+        )}
       </div>
     </div>
   );

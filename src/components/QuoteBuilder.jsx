@@ -79,21 +79,21 @@ export default function QuoteBuilder({ quote, setQuote, products, clients, onAdd
           {quote.sections.map((section) => (
             <div key={section.id} className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all ${section.visible ? 'border-l-4 border-l-cyan-500' : 'border-l-4 border-l-gray-300 opacity-60'}`}>
               {/* Header de Sección */}
-              <div className="flex justify-between items-center px-6 py-4 bg-gray-50/50 border-b border-gray-100">
-                <div className="flex items-center gap-3 flex-1">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
+              <div className="flex flex-wrap justify-between items-center gap-2 px-4 sm:px-6 py-3 sm:py-4 bg-gray-50/50 border-b border-gray-100">
+                <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                  <label className="flex items-center gap-2 cursor-pointer select-none shrink-0">
                     <input type="checkbox" checked={section.visible} onChange={() => onToggleSection(section.id)} className="h-4 w-4 text-blue-600 rounded cursor-pointer accent-cyan-500" />
                     <span className={`text-[10px] font-bold uppercase tracking-wider ${section.visible ? 'text-cyan-600' : 'text-gray-400'}`}>
                       {section.visible ? 'Visible' : 'Oculto'}
                     </span>
                   </label>
                   <input
-                    className="font-bold text-base text-blue-900 border-b-2 border-transparent hover:border-blue-200 focus:border-blue-500 outline-none bg-transparent px-2 py-1 transition-colors"
+                    className="font-bold text-sm sm:text-base text-blue-900 border-b-2 border-transparent hover:border-blue-200 focus:border-blue-500 outline-none bg-transparent px-2 py-1 transition-colors min-w-0 flex-1"
                     defaultValue={section.name}
                     onBlur={(e) => onUpdateSectionName(section.id, e.target.value)}
                   />
                 </div>
-                <button onClick={() => handleRemoveSection(section.id)} className={`px-2 py-1 rounded-lg transition-all ${deleteSectionId === section.id ? 'bg-red-100 text-red-600 shadow-sm' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'}`}>
+                <button onClick={() => handleRemoveSection(section.id)} className={`px-2 py-1 rounded-lg transition-all shrink-0 ${deleteSectionId === section.id ? 'bg-red-100 text-red-600 shadow-sm' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'}`}>
                   {deleteSectionId === section.id ? <span className="text-xs font-bold px-1">¿Confirmar?</span> : <Trash2 className="h-4 w-4" />}
                 </button>
               </div>
@@ -217,6 +217,17 @@ export default function QuoteBuilder({ quote, setQuote, products, clients, onAdd
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Barra rápida móvil para previsualizar PDF sin subir al catálogo */}
+        <div className="lg:hidden sticky bottom-2 z-30 bg-white/95 backdrop-blur border border-blue-200 p-3 rounded-xl shadow-lg flex items-center justify-between gap-3">
+          <div>
+            <span className="block text-[10px] uppercase font-bold text-slate-400">Total Cotización</span>
+            <span className="text-base font-extrabold text-blue-900">S/ {formatCurrency(totalFinal)}</span>
+          </div>
+          <button onClick={onPreview} disabled={quote.sections.every(s => s.items.length === 0)} className="bg-gradient-to-r from-blue-600 to-blue-700 disabled:from-gray-300 disabled:to-gray-300 text-white px-4 py-2.5 rounded-xl font-bold text-sm shadow-md flex items-center gap-2 disabled:shadow-none">
+            <FileText className="h-4 w-4" /> Ver PDF
+          </button>
         </div>
       </div>
 

@@ -121,16 +121,16 @@ export default function AnalyticsDashboard({ history, transactions }) {
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
         <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2"><Landmark className="h-5 w-5 text-emerald-600"/> Rendimiento Operativo y Tesorería</h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
-            <div className="flex gap-4 items-center">
-              <div className="flex-1 bg-green-50 p-6 rounded-xl text-center border border-green-200 relative overflow-hidden group shadow-sm hover:shadow-md transition-all">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 items-center">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
+              <div className="flex-1 bg-green-50 p-4 sm:p-6 rounded-xl text-center border border-green-200 relative overflow-hidden group shadow-sm hover:shadow-md transition-all">
                   <p className="text-green-800 font-bold mb-2 uppercase text-xs tracking-wider">Ingresos Totales</p>
-                  <p className="text-3xl font-black text-green-600 font-mono">S/ {ingresos.toFixed(2)}</p>
+                  <p className="text-2xl sm:text-3xl font-black text-green-600 font-mono">S/ {ingresos.toFixed(2)}</p>
               </div>
-              <div className="text-gray-300 font-bold text-2xl">-</div>
-              <div className="flex-1 bg-red-50 p-6 rounded-xl text-center border border-red-200 relative overflow-hidden group shadow-sm hover:shadow-md transition-all">
+              <div className="text-gray-300 font-bold text-2xl text-center">-</div>
+              <div className="flex-1 bg-red-50 p-4 sm:p-6 rounded-xl text-center border border-red-200 relative overflow-hidden group shadow-sm hover:shadow-md transition-all">
                   <p className="text-red-800 font-bold mb-2 uppercase text-xs tracking-wider">Gastos Operativos</p>
-                  <p className="text-3xl font-black text-red-600 font-mono">S/ {gastos.toFixed(2)}</p>
+                  <p className="text-2xl sm:text-3xl font-black text-red-600 font-mono">S/ {gastos.toFixed(2)}</p>
               </div>
             </div>
             

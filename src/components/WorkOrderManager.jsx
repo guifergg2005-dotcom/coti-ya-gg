@@ -20,17 +20,17 @@ export default function WorkOrderManager({ workOrders, setWorkOrders, reminders,
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
-      <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+      <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-wrap justify-between items-center gap-3">
         <div className="flex items-center gap-2">
           <div className="p-2 bg-blue-600 rounded-lg"><HardHat className="text-white h-5 w-5" /></div>
           <h2 className="text-xl font-bold text-slate-800">Control de Obras</h2>
         </div>
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
           <input 
             type="text" 
             placeholder="Buscar por COT o cliente..." 
-            className="pl-9 pr-4 py-2 border rounded-lg text-sm w-64 focus:ring-2 focus:ring-blue-500 outline-none"
+            className="pl-9 pr-4 py-2 border rounded-lg text-sm w-full sm:w-64 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
@@ -47,9 +47,9 @@ export default function WorkOrderManager({ workOrders, setWorkOrders, reminders,
         ) : (
           <div className="grid gap-3">
             {filtered.map(wo => (
-              <div key={wo.id} onClick={() => setSelectedId(wo.id)} className="border border-slate-200 rounded-lg p-4 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer bg-white flex items-center justify-between group">
-                <div>
-                  <div className="flex items-center gap-3 mb-1">
+              <div key={wo.id} onClick={() => setSelectedId(wo.id)} className="border border-slate-200 rounded-lg p-4 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer bg-white flex flex-wrap items-center justify-between gap-3 group">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
                     <span className="font-bold text-slate-800">{wo.quoteNumber}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1
                       ${wo.estado === 'Por Despachar' ? 'bg-amber-100 text-amber-700' : 
@@ -61,14 +61,14 @@ export default function WorkOrderManager({ workOrders, setWorkOrders, reminders,
                       {wo.estado}
                     </span>
                   </div>
-                  <p className="text-sm text-slate-600">{wo.cliente}</p>
+                  <p className="text-sm text-slate-600 truncate">{wo.cliente}</p>
                 </div>
-                <div className="text-right flex items-center gap-4">
+                <div className="text-right flex items-center gap-3 sm:gap-4 ml-auto">
                   <div className="text-xs text-slate-400">
                     <p>Generada: {wo.fecha}</p>
                     <p>{wo.items.length} ítems logísticos</p>
                   </div>
-                  <ArrowRight className="text-slate-300 group-hover:text-blue-500 transition-colors" />
+                  <ArrowRight className="text-slate-300 group-hover:text-blue-500 transition-colors shrink-0" />
                 </div>
               </div>
             ))}
