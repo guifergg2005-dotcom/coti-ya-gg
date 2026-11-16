@@ -1,4 +1,4 @@
-import { calculateQuoteTotals, formatCurrency } from '../shared/quoteMath.mjs';
+import { calculateQuoteTotals, calculateSectionDisplaySubtotals, formatCurrency } from '../shared/quoteMath.mjs';
 
 export const PAPER_SIZES = {
   A4: { css: '210mm 297mm', width: 210, height: 297, native: 'A4' },
@@ -98,24 +98,23 @@ export function renderQuoteDocument({ quote, pdfConfig = {} }) {
   const markSize = Math.min(100, Math.max(10, Number(pdfConfig.watermarkSize) || 55));
   const markOpacity = Math.min(1, Math.max(0, Number(pdfConfig.watermarkOpacity ?? 0.12)));
 
+  const sectionSubtotals = calculateSectionDisplaySubtotals(quote);
   let globalIndex = 0;
-  const rows = sections.map((section) => {
+  const rows = sections.map((section, secIdx) => {
     const showSectionHeader = sections.length > 1 || (section.name && section.name !== 'Propuesta Principal');
-    const sectionItems = section.items.map((item) => {
+    const sectionSub = sectionSubtotals[secIdx]?.displaySubtotal ?? 0;
+    const itemCount = Math.max(1, section.items.length);
+    const sectionItems = section.items.map((item, itemIdx) => {
       globalIndex += 1;
-      const qty = Number(item.cantidad ?? 1);
-      const itemTotal = Number(item.total ?? (qty * Number(item.precio || 0)));
-      const unitPrice = qty > 0 ? itemTotal / qty : Number(item.precio || 0);
       return '<tr>' +
         '<td class="item">' + globalIndex + '</td>' +
         '<td class="desc-cell"><strong>' + e(item.nombre || 'Ítem sin nombre') + '</strong>' + formatDescriptionHtml(item.descripcion, e) + '</td>' +
         '<td class="quantity">' + e(item.cantidad ?? 1) + '</td>' +
         '<td class="unit">' + e(item.unidad || 'UND') + '</td>' +
-        '<td class="price">' + (unitPrice > 0 ? e(formatCurrency(unitPrice)) : '') + '</td>' +
-        '<td class="subtotal">' + e(formatCurrency(itemTotal)) + '</td>' +
+        (itemIdx === 0 ? '<td class="subtotal" rowspan="' + itemCount + '">' + e(formatCurrency(sectionSub)) + '</td>' : '') +
       '</tr>';
     }).join('');
-    return (showSectionHeader ? '<tr class="section-row"><td colspan="6" class="section-title">' + e(section.name || section.nombre || 'Propuesta') + '</td></tr>' : '') + sectionItems;
+    return (showSectionHeader ? '<tr class="section-row"><td colspan="5" class="section-title">' + e(section.name || section.nombre || 'Propuesta') + '</td></tr>' : '') + sectionItems;
   }).join('');
 
   const rawAccounts = Array.isArray(pdfConfig.accounts) ? pdfConfig.accounts : [];
@@ -221,10 +220,9 @@ ${pdfConfig.tableStyle === 'zebra' ? '.items-table tbody tr:nth-child(even) { ba
 .desc-spacer { height: 1.5mm; }
 .desc-bullet { display: flex; gap: 2.2mm; padding-left: 3.5mm; margin: 0.4mm 0; }
 .desc-bullet .check { font-weight: 700; flex-shrink: 0; }
-.quantity { width: 14mm; text-align: center; font-weight: 600; }
-.unit { width: 14mm; text-align: center; font-weight: 600; }
-.price { width: 23mm; text-align: right; font-weight: 600; }
-.subtotal { width: 25mm; text-align: right; font-weight: 800; }
+.quantity { width: 15mm; text-align: center; font-weight: 600; }
+.unit { width: 15mm; text-align: center; font-weight: 600; }
+.subtotal { width: 28mm; text-align: right; font-weight: 800; vertical-align: top; padding-top: 3mm !important; border-bottom: 1pt solid #000000 !important; background: #ffffff; }
 .closing-row {
   display: flex;
   justify-content: space-between;
@@ -394,8 +392,8 @@ ${pdfConfig.tableStyle === 'zebra' ? '.items-table tbody tr:nth-child(even) { ba
       '</section>' +
       '<p class="greeting">Estimados Señores:<br>En atención a su solicitud, hacemos llegar nuestra propuesta económica para el requerimiento solicitado</p>' +
       '<table class="items-table">' +
-        '<colgroup><col style="width:13mm"><col><col style="width:14mm"><col style="width:14mm"><col style="width:23mm"><col style="width:25mm"></colgroup>' +
-        '<thead><tr><th>ITEM</th><th>DESCRIPCION</th><th>CANT</th><th>UM</th><th>Precio<br>Unitario ' + e(currency) + '</th><th>Sub Total ' + e(currency) + '</th></tr></thead>' +
+        '<colgroup><col style="width:13mm"><col><col style="width:15mm"><col style="width:15mm"><col style="width:28mm"></colgroup>' +
+        '<thead><tr><th>ITEM</th><th>DESCRIPCION</th><th>CANT</th><th>UM</th><th>Sub Total ' + e(currency) + '</th></tr></thead>' +
         '<tbody>' + rows + '</tbody>' +
       '</table>' +
       '<section class="closing-row">' +

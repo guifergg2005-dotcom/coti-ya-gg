@@ -147,3 +147,17 @@ test('A13 service category variants do not deduct stock and existing clients upd
   assert.equal(f.data.inventory[1].stock, 0);
   assert.equal(f.data.inventory[2].stock, 0);
 });
+test('A14 hides unit prices, shows only editable table subtotal, and converts difference vs inventory into ganancia', () => {
+  const f = cart();
+  f.api().addItemToSection({ id: 2, nombre: 'Motor Hyron', precio: 300 }, 1);
+  // Inventory sum = 200 + 300 = 500
+  assert.equal(calculateQuoteTotals(f.data.currentQuote).subtotal, 500);
+  assert.equal(f.api().updateSectionSubtotal(1, 780), true);
+  assert.equal(f.data.currentQuote.ganancia, 280);
+  assert.equal(calculateQuoteTotals(f.data.currentQuote).totalFinal, 780);
+  const { renderQuoteDocument } = load('electron/quoteDocument.mjs');
+  const { html } = renderQuoteDocument({ quote: f.data.currentQuote });
+  assert.doesNotMatch(html, /Precio\s*<br>\s*Unitario/i);
+  assert.doesNotMatch(html, /class="price"/);
+  assert.match(html, /<td class="subtotal" rowspan="2">780\.00<\/td>/);
+});

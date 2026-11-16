@@ -4,7 +4,7 @@ import { isPosted } from '../utils/business';
 import { renderQuoteDocument } from '../../electron/quoteDocument.mjs';
 import { DEFAULT_ACCOUNTS } from '../services/defaultData';
 import { ArrowLeft, Settings, Save, Printer, Palette, Building, Landmark, Trash2, FileText } from 'lucide-react';
-import { calculateQuoteTotals, formatCurrency, reverseCalculateGanancia } from '../utils/math';
+import { calculateQuoteTotals, calculateSectionDisplaySubtotals, applySectionSubtotal, formatCurrency, reverseCalculateGanancia } from '../utils/math';
 
 
 
@@ -46,7 +46,8 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
   }, [pdfConfig?.accounts, savePdfConfig]);
 
   // --- Motor financiero centralizado ---
-  const { subtotal, igv, totalFinal } = calculateQuoteTotals(quote);
+  const { subtotal, ganancia, igv, totalFinal } = calculateQuoteTotals(quote);
+  const sectionDisplays = calculateSectionDisplaySubtotals(quote);
   const themeColor = pdfConfig.color || '#d99b26';
 
   // --- Handlers ---
@@ -69,12 +70,29 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
   const handleTotalChange = e => {
     const newTotal = Number(e.target.value), minimum = Math.round(subtotal * (quote.omitIgv ? 1 : 1.18) * 100) / 100;
     if (readOnly || !Number.isSafeInteger(Math.round(newTotal * 100)) || newTotal < minimum) {
-      e.target.value = totalFinal.toFixed(2); setPrintMessage('El total debe cubrir las partidas y su IGV. Para reducirlo, edita los precios en la cotización.'); return;
+      e.target.value = totalFinal.toFixed(2); setPrintMessage('El total debe cubrir los precios base de inventario y su IGV.'); return;
     }
-    const ganancia = reverseCalculateGanancia(newTotal, subtotal, quote.omitIgv);
-    setQuote(prev => ({ ...prev, ganancia, totalManual: null }));
-    const calculated = calculateQuoteTotals({ ...quote, ganancia, totalManual: null }).totalFinal;
-    setPrintMessage(calculated !== newTotal ? 'Total ajustado al redondeo de céntimos: ' + formatCurrency(calculated) : 'Total actualizado. El IGV conserva su porcentaje.');
+    const newGanancia = reverseCalculateGanancia(newTotal, subtotal, quote.omitIgv);
+    setQuote(prev => ({
+      ...prev,
+      ganancia: newGanancia,
+      totalManual: null,
+      sections: (prev.sections || []).map(s => ({ ...s, subtotalManual: null }))
+    }));
+    const calculated = calculateQuoteTotals({ ...quote, ganancia: newGanancia, totalManual: null }).totalFinal;
+    setPrintMessage(calculated !== newTotal ? `Total ajustado a ${formatCurrency(calculated)} · Ganancia: S/ ${formatCurrency(newGanancia)}` : `Total actualizado · Ganancia: S/ ${formatCurrency(newGanancia)}`);
+  };
+
+  const handleSectionSubChange = (secInfo, e) => {
+    const raw = Number(e.target.value);
+    if (readOnly || !Number.isSafeInteger(Math.round(raw * 100)) || raw < secInfo.inventorySubtotal) {
+      e.target.value = secInfo.displaySubtotal.toFixed(2);
+      setPrintMessage('El Sub Total de la tabla debe cubrir al menos su precio de inventario (S/ ' + formatCurrency(secInfo.inventorySubtotal) + ').');
+      return;
+    }
+    const updatedQuote = applySectionSubtotal(quote, secInfo.sectionId, raw);
+    setQuote(prev => applySectionSubtotal(prev, secInfo.sectionId, raw));
+    setPrintMessage(`Sub Total de «${secInfo.name}» actualizado · Ganancia total: S/ ${formatCurrency(updatedQuote.ganancia)}`);
   };
 
   const handlePrint = async (mode = 'print') => {
@@ -127,8 +145,12 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3 items-center justify-between mb-4">
-          <p className="text-xs text-slate-500">Formato oficial SERYVER G&G · Texto seleccionable · Numeración de páginas ({igv > 0 ? `IGV: ${formatCurrency(igv)}` : 'Sin IGV'})</p>
+        <div className="flex flex-wrap gap-3 items-center justify-between mb-3">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+            <span className="bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">Inventario: <b>S/ {formatCurrency(subtotal)}</b></span>
+            <span className="bg-green-50 text-green-800 px-2.5 py-1 rounded-lg border border-green-200">Ganancia: <b>+S/ {formatCurrency(ganancia)}</b></span>
+            <span className="text-slate-400">({igv > 0 ? `IGV: S/ ${formatCurrency(igv)}` : 'Sin IGV'})</span>
+          </div>
           <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
             {isCompactScreen && (
               <button
@@ -139,12 +161,37 @@ export default function PDFPreview({ quote, setQuote, onBack, onSave, pdfConfig,
                 {fitMobile ? 'Zoom 100%' : 'Ajustar a pantalla'}
               </button>
             )}
-            <label className="text-xs text-slate-600 flex items-center">Total ({quote.moneda || 'S/'})
-              <input disabled={readOnly} aria-label="Total de la cotización" type="number" min="0" step="0.01" key={totalFinal.toFixed(2)} defaultValue={totalFinal.toFixed(2)} onBlur={handleTotalChange} className="ml-2 w-28 p-2 border rounded-lg text-right text-sm bg-white" />
+            <label className="text-xs text-slate-600 flex items-center font-semibold">Total PDF ({quote.moneda || 'S/'})
+              <input disabled={readOnly} aria-label="Total de la cotización" type="number" min="0" step="0.01" key={totalFinal.toFixed(2)} defaultValue={totalFinal.toFixed(2)} onBlur={handleTotalChange} className="ml-2 w-28 p-2 border-2 border-blue-300 rounded-lg text-right text-sm font-bold text-blue-900 bg-white" />
             </label>
             <button disabled={printing || uploading || !!printable.error} onClick={() => handlePrint('pdf')} className="px-3.5 py-2 rounded-lg border border-blue-600 text-blue-700 font-semibold text-xs sm:text-sm disabled:opacity-50 bg-white hover:bg-blue-50">Guardar PDF</button>
           </div>
         </div>
+
+        {sectionDisplays.length > 0 && (
+          <div className="bg-white border border-slate-200 rounded-xl p-3 mb-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+            <span className="text-xs font-bold text-slate-600">Editar Sub Total por Tabla (la diferencia con inventario pasa a Ganancia):</span>
+            <div className="flex flex-wrap items-center gap-3">
+              {sectionDisplays.map(sec => (
+                <label key={sec.sectionId} className="text-xs text-slate-700 flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
+                  <span className="font-semibold">{sec.name}:</span>
+                  <span className="text-slate-400">{quote.moneda || 'S/'}</span>
+                  <input
+                    disabled={readOnly}
+                    type="number"
+                    min={sec.inventorySubtotal}
+                    step="0.01"
+                    aria-label={`Sub Total tabla ${sec.name}`}
+                    key={`pdf-sec-${sec.sectionId}-${sec.displaySubtotal.toFixed(2)}`}
+                    defaultValue={sec.displaySubtotal.toFixed(2)}
+                    onBlur={(e) => handleSectionSubChange(sec, e)}
+                    className="w-24 p-1 border border-blue-300 rounded text-right font-bold text-blue-900 text-xs bg-white"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
         {readOnly && <p className="mb-3 text-sm text-slate-700">Venta contabilizada: sus importes y partidas están protegidos. {onDuplicate && <button className="underline font-bold" onClick={() => onDuplicate(quote)}>Duplicar como nueva propuesta</button>}</p>}
         {printable.error && <p role="alert" className="p-3 bg-red-50 text-red-800">{printable.error} Abre Personalizar para quitar o reemplazar las imágenes.</p>}
         {printMessage && <p role="status" className="mb-4 rounded-lg bg-blue-50 text-blue-900 p-3 text-sm">{printMessage}</p>}

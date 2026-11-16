@@ -1,4 +1,4 @@
-import { calculateQuoteTotals } from '../utils/math';
+import { calculateQuoteTotals, applySectionSubtotal, syncQuoteGananciaFromSections } from '../utils/math';
 import { localDate, nonNegative, newQuoteIdentity, isPosted, validateQuote } from '../utils/business';
 import { validateFieldSize } from '../../shared/dataLimits.mjs';
 import { configuredCombo, isCombo, stockRequirements } from '../utils/catalog';
@@ -34,7 +34,7 @@ export function useQuoteCart(appData, setView, showToast = () => {}) {
         product = configuredCombo(product, inventory);
       }
       const precio = nonNegative(product.precio, 'Precio');
-      return edit(prev => ({ ...prev, totalManual: null, sections: prev.sections.map(s => s.id === sectionId ? { ...s,
+      return edit(prev => syncQuoteGananciaFromSections({ ...prev, totalManual: null, sections: prev.sections.map(s => s.id === sectionId ? { ...s,
         items: [...s.items, { ...product, precio, uid: crypto.randomUUID(), cantidad: 1, ancho: 1, alto: 1, total: precio }] } : s) }));
     } catch (error) { return fail(error); }
   };
@@ -43,7 +43,7 @@ export function useQuoteCart(appData, setView, showToast = () => {}) {
       if (field === 'comboConfig') value = configuredCombo(value, inventory);
       const numeric = ['cantidad', 'precio', 'ancho', 'alto'].includes(field);
       const normalized = numeric ? nonNegative(value, field) : value;
-      return edit(prev => ({ ...prev, totalManual: null, sections: prev.sections.map(s => s.id !== sectionId ? s : { ...s,
+      return edit(prev => syncQuoteGananciaFromSections({ ...prev, totalManual: null, sections: prev.sections.map(s => s.id !== sectionId ? s : { ...s,
         items: s.items.map(item => {
           if (item.uid !== itemUid) return item;
           if (field === 'comboConfig') {
@@ -63,11 +63,17 @@ export function useQuoteCart(appData, setView, showToast = () => {}) {
         }) }) }));
     } catch (error) { return fail(error); }
   };
-  const removeItemFromSection = (id, uid) => edit(q => ({ ...q, totalManual: null, sections: q.sections.map(s => s.id === id ? { ...s, items: s.items.filter(i => i.uid !== uid) } : s) }));
+  const removeItemFromSection = (id, uid) => edit(q => syncQuoteGananciaFromSections({ ...q, totalManual: null, sections: q.sections.map(s => s.id === id ? { ...s, items: s.items.filter(i => i.uid !== uid) } : s) }));
   const addSection = () => edit(q => ({ ...q, sections: [...q.sections, { id: crypto.randomUUID(), name: 'Nueva Sección', items: [], visible: true }] }));
-  const toggleSectionVisibility = id => edit(q => ({ ...q, totalManual: null, sections: q.sections.map(s => s.id === id ? { ...s, visible: !s.visible } : s) }));
+  const toggleSectionVisibility = id => edit(q => syncQuoteGananciaFromSections({ ...q, totalManual: null, sections: q.sections.map(s => s.id === id ? { ...s, visible: !s.visible } : s) }));
   const updateSectionName = (id, name) => edit(q => ({ ...q, sections: q.sections.map(s => s.id === id ? { ...s, name } : s) }));
-  const removeSection = id => edit(q => ({ ...q, totalManual: null, sections: q.sections.filter(s => s.id !== id) }));
+  const updateSectionSubtotal = (id, subtotalValue) => {
+    try {
+      const val = nonNegative(subtotalValue, 'Sub Total de tabla');
+      return edit(q => applySectionSubtotal(q, id, val));
+    } catch (error) { return fail(error); }
+  };
+  const removeSection = id => edit(q => syncQuoteGananciaFromSections({ ...q, totalManual: null, sections: q.sections.filter(s => s.id !== id) }));
   const handleClientSelect = name => edit(q => ({ ...q, cliente: clients.find(c => c.nombre === name) || { ...q.cliente, nombre: name } }));
   const clearAllItems = () => edit(q => ({ ...q, totalManual: null, ganancia: 0, sections: [{ id: crypto.randomUUID(), name: 'Propuesta Principal', items: [], visible: true }] }));
   const saveAndRegister = () => {
@@ -123,5 +129,5 @@ export function useQuoteCart(appData, setView, showToast = () => {}) {
   const updateQuoteDetails = (id, updates) => appData.setHistory(prev => prev.map(q => q.id === id ? { ...q,
     ...Object.fromEntries(Object.entries(updates).filter(([key]) => ['ubicacion', 'fechaInicio', 'fechaEntrega', 'publicidad'].includes(key))) } : q));
   return { startNewQuote, duplicateQuote, addItemToSection, updateItemInSection, removeItemFromSection, addSection, toggleSectionVisibility,
-    updateSectionName, removeSection, handleClientSelect, clearAllItems, saveAndRegister, changeQuoteStatus, deleteQuote, updateQuoteDetails };
+    updateSectionName, updateSectionSubtotal, removeSection, handleClientSelect, clearAllItems, saveAndRegister, changeQuoteStatus, deleteQuote, updateQuoteDetails };
 }
